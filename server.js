@@ -1,48 +1,54 @@
-const express = require("express");
-const upload = require("express-fileupload");
-const ffmpeg = require("fluent-ffmpeg");
-const port = process.env.PORT || 5500;
-const host = "0.0.0.0";
+const express = require('express');
+const axios = require('axios');
+const fs = require('fs');
+const ffmpeg = require('fluent-ffmpeg');
+const port = process.env.PORT || 10000;
 const app = express();
 
-
-// Middleware config for upload
-app.use(upload({
-    useTempFiles : true,
-    tempFileDir : './filestore/'
-}));
+ffmpeg.setFfmpegPath('./bin/ffmpeg');
 
 
-// // Middleware config for ffmpeg
-// ffmpeg.setFfmpegPath("C:/Users/ac310/Desktop/ffmpeg-20200420-cacdac8-win64-static/bin/ffmpeg.exe");
-ffmpeg.setFfmpegPath("/app/vendor/ffmpeg/bin");
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.sendFile("./public/index.html", {
+    root: __dirname
+  });
+});
+
+app.post("/mp4tomp3", async (req, res) => {
+  try {
+    const fileUrl = req.body.fileUrl;
+    const response = await axios.get(fileUrl, {
+      responseType: 'arraybuffer'
+    });
+    const inputPath = './filestore/input.mp4';
+    const outputPath = './filestore/output.mp3';
+    fs.writeFileSync(inputPath, response.data);
+
+    ffmpeg(inputPath)
+      .toFormat('mp3')
+      .on('end', () => {
+        console.log("Conversion Done !");
+        res.download(outputPath, 'output.mp3', (err) => {
+          if (err) {
+            console.error(err);
+            res.status(500).send('An error occurred');
+          }
+        });
+      })
+      .on('error', (err) => {
+        console.error(err);
+        res.status(500).send('An error occurred');
+      })
+      .save(outputPath);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('An error occurred');
+  }
+});
 
 
-//Landing Route {TYPE - GET}
-app.get("/",(req,res)=>{
-    res.sendFile("./public/index.html",{root:__dirname})
-})
-
-
-// UPLOAD AND CONVERT Route {TYPE - POST}
-app.post("/mp4tomp3",(req,res)=>{
-    res.contentType("video/mp4");
-    res.attachment("output.mp3");
-
-
-    //UPLOADED FILE
-
-    req.files.mp4.mv("./filestore/" + req.files.mp4.name, (err)=>{
-        if(err)console.log(err);
-        console.log("File uploaded");
-    })
-
-    //CONVERSION
-
-    ffmpeg("./filestore/" + req.files.mp4.name)
-    .toFormat("mp3")
-    .on("end",()=>console.log("Conversion Done !"))
-    .on("error",(err)=>console.log(err))
-    .pipe(res,{end:true})
-})
-app.listen(port,host,()=>console.log(`Server is running at port ${port}`))
+app.listen(port, () => {
+  console.log(`Server is running at port ${port}`);
+});
