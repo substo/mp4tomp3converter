@@ -1,17 +1,13 @@
 {
-  "name": "converter",
+  "name": "mp4tomp3converter",
   "version": "1.0.0",
-  "description": "ffmpeg converter",
   "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
-  },
-  "author": "Aditya Chaudhary",
-  "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.1",
     "express": "^4.17.1",
-    "express-fileupload": "^1.1.7-alpha.3",
     "fluent-ffmpeg": "^2.1.2"
+  },
+  "scripts": {
+    "start": "node server.js"
   }
 }
